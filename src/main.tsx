@@ -3,10 +3,11 @@ import { createRoot } from "react-dom/client";
 import { createBrowserRouter } from "react-router";
 import { RouterProvider } from "react-router/dom";
 import "./index.css";
-import Home from "./pages/Home";
-import Register from "./pages/Register";
-import Login from "./pages/Login";
+import BlogDetail from "./pages/BlogDetail";
 import CreateBlog from "./pages/CreateBlog";
+import Home from "./pages/Home";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 
 const router = createBrowserRouter([
   {
@@ -24,6 +25,10 @@ const router = createBrowserRouter([
   {
     path: "/create",
     element: <CreateBlog />,
+  },
+  {
+    path: "/blogs/:id",
+    element: <BlogDetail />,
   },
 ]);
 
