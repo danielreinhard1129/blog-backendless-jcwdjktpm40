@@ -52,7 +52,7 @@ function Home() {
                 </div>
 
                 <Link
-                  to={`/blog/${blog.id}`}
+                  to={`/blogs/${blog.id}`}
                   className="inline-flex items-center space-x-2 text-yellow-500 hover:text-purple-600 font-semibold transition-colors"
                 >
                   <span>Read More</span>
