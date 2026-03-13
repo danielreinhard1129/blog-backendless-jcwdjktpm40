@@ -1,7 +1,59 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { BookOpen, Lock, Mail, User } from "lucide-react";
-import { Link } from "react-router";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router";
+import { z } from "zod";
+import { axiosInstance } from "../lib/axios";
+
+const formSchema = z
+  .object({
+    name: z.string().min(2, { message: "Name must be at least 2 characters" }),
+    email: z.email("Invalid email"),
+    password: z
+      .string()
+      .min(6, { message: "Password must be at least 6 chars" }),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
+
+type FormData = z.infer<typeof formSchema>;
 
 function Register() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const navigate = useNavigate();
+
+  const [isPending, setIsPending] = useState<boolean>(false);
+
+  const onSubmit = async (data: FormData) => {
+    setIsPending(true);
+    try {
+      await axiosInstance.post("/users/register", {
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      });
+
+      alert("Register success!");
+      navigate("/login");
+    } catch (error) {
+      console.log(error);
+      alert("Register failed!");
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
@@ -16,7 +68,7 @@ function Register() {
           Join our community of writers
         </p>
 
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div>
             <label
               htmlFor="name"
@@ -31,8 +83,12 @@ function Register() {
                 id="name"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                 placeholder="John Doe"
+                {...register("name")}
               />
             </div>
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+            )}
           </div>
 
           <div>
@@ -49,8 +105,14 @@ function Register() {
                 id="email"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                 placeholder="you@example.com"
+                {...register("email")}
               />
             </div>
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -67,8 +129,14 @@ function Register() {
                 id="password"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                 placeholder="••••••••"
+                {...register("password")}
               />
             </div>
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -85,15 +153,22 @@ function Register() {
                 id="confirmPassword"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                 placeholder="••••••••"
+                {...register("confirmPassword")}
               />
             </div>
+            {errors.confirmPassword && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.confirmPassword.message}
+              </p>
+            )}
           </div>
 
           <button
             type="submit"
+            disabled={isPending}
             className="w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md"
           >
-            Register
+            {isPending ? "Loading" : "Register"}
           </button>
         </form>
 
