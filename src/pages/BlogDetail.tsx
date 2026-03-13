@@ -1,32 +1,58 @@
-import { useParams, Link } from "react-router";
-import { Calendar, User, ArrowLeft } from "lucide-react";
-import { blogs } from "../data/blogs";
+import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link, useParams } from "react-router";
+import BackNavigation from "../components/BackNavigation";
+import BlogDetailContent from "../components/BlogDetailContent";
+import BlogDetailError from "../components/BlogDetailError";
+import BlogDetailHeader from "../components/BlogDetailHeader";
+import BlogDetailLoading from "../components/BlogDetailLoading";
+import BlogDetailNotFound from "../components/BlogDetailNotFound";
+import BlogDetailThumbnail from "../components/BlogDetailThumbnail";
 import Navbar from "../components/Navbar";
+import { axiosInstance } from "../lib/axios";
+import type { Blog } from "../types/blog";
 
 function BlogDetail() {
-  const { id } = useParams<{ id: string }>();
-  const blog = blogs.find((b) => b.id === id);
+  const { objectId } = useParams<{ objectId: string }>();
+
+  const [blog, setBlog] = useState<Blog | null>(null);
+  const [isPending, setIsPending] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const getBlog = async (objectId: string) => {
+    try {
+      const response = await axiosInstance.get<Blog>(`/data/Blogs/${objectId}`);
+      setBlog(response.data);
+      setError(null);
+    } catch (error) {
+      console.error("Failed to fetch blog:", error);
+      setError("Failed to load blog. Please try again later.");
+    } finally {
+      setIsPending(false);
+    }
+  };
+
+  useEffect(() => {
+    if (objectId) {
+      getBlog(objectId);
+    }
+  }, [objectId]);
+
+  if (isPending) {
+    return <BlogDetailLoading />;
+  }
+
+  if (error) {
+    return (
+      <BlogDetailError
+        error={error}
+        onRetry={() => objectId && getBlog(objectId)}
+      />
+    );
+  }
 
   if (!blog) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="text-center">
-            <h1 className="text-3xl font-bold text-gray-800 mb-4">
-              Blog Not Found
-            </h1>
-            <Link
-              to="/"
-              className="inline-flex items-center space-x-2 text-yellow-500 hover:text-purple-600 font-semibold transition-colors"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span>Back to Home</span>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
+    return <BlogDetailNotFound />;
   }
 
   return (
@@ -34,48 +60,22 @@ function BlogDetail() {
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <Link
-          to="/"
-          className="inline-flex items-center space-x-2 text-yellow-500 hover:text-purple-600 font-semibold transition-colors mb-8"
-        >
-          <ArrowLeft className="h-5 w-5" />
-          <span>Back to Home</span>
-        </Link>
+        <BackNavigation className="mb-8" />
 
         <article className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <img
-            src={blog.thumbnail}
-            alt={blog.title}
-            className="w-full h-96 object-cover"
-          />
+          <BlogDetailThumbnail blog={blog} />
 
           <div className="p-8 md:p-12">
-            <h1 className="text-4xl font-bold text-gray-800 mb-4">
-              {blog.title}
-            </h1>
+            <BlogDetailHeader
+              title={blog.title}
+              author={blog.author}
+              created={blog.created}
+            />
 
-            <div className="flex items-center text-gray-600 mb-6 space-x-6">
-              <div className="flex items-center space-x-2">
-                <User className="h-5 w-5" />
-                <span className="font-medium">{blog.author}</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5" />
-                <span>{blog.date}</span>
-              </div>
-            </div>
-
-            <div className="border-t border-gray-200 pt-6 mb-6">
-              <p className="text-xl text-gray-700 font-medium leading-relaxed">
-                {blog.description}
-              </p>
-            </div>
-
-            <div className="prose prose-lg max-w-none">
-              <div className="text-gray-700 leading-relaxed whitespace-pre-line">
-                {blog.content}
-              </div>
-            </div>
+            <BlogDetailContent
+              description={blog.description}
+              content={blog.content}
+            />
           </div>
         </article>
 
