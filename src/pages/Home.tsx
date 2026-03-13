@@ -2,8 +2,11 @@ import { ArrowRight, Calendar, User } from "lucide-react";
 import { Link } from "react-router";
 import Navbar from "../components/Navbar";
 import { blogs } from "../data/blogs";
+import { useAuth } from "../stores/useAuth";
 
 function Home() {
+  const { user } = useAuth();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -11,12 +14,15 @@ function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-800">Latest Blogs</h1>
-          <Link
-            to="/create"
-            className="bg-yellow-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md"
-          >
-            Create Blog
-          </Link>
+
+          {!!user && (
+            <Link
+              to="/create"
+              className="bg-yellow-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md"
+            >
+              Create Blog
+            </Link>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
