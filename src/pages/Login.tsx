@@ -1,7 +1,50 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { BookOpen, Lock, Mail } from "lucide-react";
-import { Link } from "react-router";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { Link, useNavigate } from "react-router";
+import { z } from "zod";
+import { axiosInstance } from "../lib/axios";
+import { useAuth } from "../stores/useAuth";
+
+const formSchema = z.object({
+  email: z.email("Invalid email"),
+  password: z.string().min(1, { message: "Password is required" }),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 function Login() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<FormData>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const { login } = useAuth();
+  const navigate = useNavigate();
+  const [isPending, setIsPending] = useState<boolean>(false);
+
+  const onSubmit = async (data: FormData) => {
+    setIsPending(true);
+    try {
+      const response = await axiosInstance.post("/users/login", {
+        login: data.email,
+        password: data.password,
+      });
+      login(response.data);
+      alert("Login success!");
+      navigate("/");
+    } catch (error) {
+      console.log(error);
+      alert("Login failed!");
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
@@ -16,7 +59,7 @@ function Login() {
           Login to your account to continue
         </p>
 
-        <form className="space-y-6">
+        <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div>
             <label
               htmlFor="email"
@@ -31,8 +74,14 @@ function Login() {
                 id="email"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                 placeholder="you@example.com"
+                {...register("email")}
               />
             </div>
+            {errors.email && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.email.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -49,15 +98,22 @@ function Login() {
                 id="password"
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                 placeholder="••••••••"
+                {...register("password")}
               />
             </div>
+            {errors.password && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.password.message}
+              </p>
+            )}
           </div>
 
           <button
             type="submit"
+            disabled={isPending}
             className="w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md"
           >
-            Login
+            {isPending ? "Loading" : "Login"}
           </button>
         </form>
 
