@@ -1,7 +1,91 @@
-import { FileText, User, Image, File as FileEdit } from "lucide-react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { File as FileEdit, FileText, Image, User } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { useNavigate } from "react-router";
+import z from "zod";
 import Navbar from "../components/Navbar";
+import { axiosInstance } from "../lib/axios";
+
+const formSchema = z.object({
+  title: z.string("Title is required").min(1, "Title cannot be empty"),
+  description: z
+    .string("Description is required")
+    .min(1, "Description cannot be empty"),
+  author: z.string("Author is required").min(1, "Author cannot be empty"),
+  thumbnail: z
+    .instanceof(File, { message: "Thumbnail must be a file" })
+    .refine((file) => file.size > 0, "Thumbnail is required"),
+  content: z.string("Content is required").min(1, "Content cannot be empty"),
+});
+
+type FormDataCreateBlog = z.infer<typeof formSchema>;
+
+const generateRandomString = (length: number = 10) => {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let result = "";
+
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  return result;
+};
+
+interface FileServiceResponse {
+  fileURL: string;
+  filePath: string;
+}
 
 function CreateBlog() {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+  } = useForm<FormDataCreateBlog>({
+    resolver: zodResolver(formSchema),
+  });
+
+  const navigate = useNavigate();
+
+  const [isPending, setIsPending] = useState<boolean>(false);
+
+  const onSubmit = async (data: FormDataCreateBlog) => {
+    setIsPending(true);
+    try {
+      // step 1 -> masukin thumbnail ke file service
+      const form = new FormData();
+      form.append("file", data.thumbnail);
+
+      const folderName = "images";
+      const fileName = generateRandomString(10);
+      const response = await axiosInstance.post<FileServiceResponse>(
+        `/files/${folderName}/${fileName}`,
+        form,
+      );
+
+      // step 2 -> masukin data ke database table Blogs
+      await axiosInstance.post(`/data/Blogs`, {
+        thumbnail: response.data.fileURL,
+        author: data.author,
+        description: data.description,
+        title: data.title,
+        content: data.content,
+      });
+
+      alert("Create Blog success");
+
+      navigate("/");
+    } catch (error) {
+      console.log(error);
+      alert("Create Blog failed");
+    } finally {
+      setIsPending(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
@@ -15,7 +99,7 @@ function CreateBlog() {
             Share your thoughts and ideas with the community
           </p>
 
-          <form className="space-y-6">
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             <div>
               <label
                 htmlFor="title"
@@ -30,7 +114,13 @@ function CreateBlog() {
                   id="title"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                   placeholder="Enter your blog title"
+                  {...register("title")}
                 />
+                {errors.title && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.title.message}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -46,7 +136,14 @@ function CreateBlog() {
                 rows={3}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition resize-none"
                 placeholder="Write a brief description of your blog"
+                {...register("description")}
               />
+
+              {errors.description && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.description.message}
+                </p>
+              )}
             </div>
 
             <div>
@@ -63,7 +160,14 @@ function CreateBlog() {
                   id="author"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition"
                   placeholder="Your name"
+                  {...register("author")}
                 />
+
+                {errors.author && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.author.message}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -81,6 +185,13 @@ function CreateBlog() {
                   id="thumbnail"
                   accept="image/*"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-yellow-50 file:text-yellow-700 hover:file:bg-yellow-100"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+
+                    if (file) {
+                      setValue("thumbnail", file);
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -99,16 +210,24 @@ function CreateBlog() {
                   rows={12}
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent outline-none transition resize-none"
                   placeholder="Write your blog content here..."
+                  {...register("content")}
                 />
+
+                {errors.content && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.content.message}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="flex gap-4">
               <button
                 type="submit"
+                disabled={isPending}
                 className="flex-1 bg-yellow-500 text-white py-3 rounded-lg font-semibold hover:bg-purple-600 transition-colors shadow-md"
               >
-                Publish Blog
+                {isPending ? "Loading" : "Publish Blog"}
               </button>
               <button
                 type="button"
