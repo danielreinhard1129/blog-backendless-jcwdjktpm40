@@ -6,6 +6,7 @@ import { useNavigate } from "react-router";
 import z from "zod";
 import Navbar from "../components/Navbar";
 import { axiosInstance } from "../lib/axios";
+import toast from "react-hot-toast";
 
 const formSchema = z.object({
   title: z.string("Title is required").min(1, "Title cannot be empty"),
@@ -75,12 +76,12 @@ function CreateBlog() {
         content: data.content,
       });
 
-      alert("Create Blog success");
+      toast.success("Create Blog success");
 
       navigate("/");
     } catch (error) {
       console.log(error);
-      alert("Create Blog failed");
+      toast.error("Create Blog failed");
     } finally {
       setIsPending(false);
     }

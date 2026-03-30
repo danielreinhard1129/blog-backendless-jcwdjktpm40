@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router";
 import { z } from "zod";
 import { axiosInstance } from "../lib/axios";
+import toast from "react-hot-toast";
 
 const formSchema = z
   .object({
@@ -44,11 +45,11 @@ function Register() {
         password: data.password,
       });
 
-      alert("Register success!");
+      toast.success("Register success!");
       navigate("/login");
     } catch (error) {
       console.log(error);
-      alert("Register failed!");
+      toast.error("Register failed!");
     } finally {
       setIsPending(false);
     }
