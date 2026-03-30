@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router";
 import { z } from "zod";
 import { axiosInstance } from "../lib/axios";
 import { useAuth } from "../stores/useAuth";
+import toast from "react-hot-toast";
 
 const formSchema = z.object({
   email: z.email("Invalid email"),
@@ -35,11 +36,11 @@ function Login() {
         password: data.password,
       });
       login(response.data);
-      alert("Login success!");
+      toast.success("Login success!");
       navigate("/");
     } catch (error) {
       console.log(error);
-      alert("Login failed!");
+      toast.error("Login failed!");
     } finally {
       setIsPending(false);
     }
