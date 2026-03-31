@@ -1,5 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import BackNavigation from "../components/BackNavigation";
 import BlogDetailContent from "../components/BlogDetailContent";
@@ -15,28 +15,18 @@ import type { Blog } from "../types/blog";
 function BlogDetail() {
   const { objectId } = useParams<{ objectId: string }>();
 
-  const [blog, setBlog] = useState<Blog | null>(null);
-  const [isPending, setIsPending] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const getBlog = async (objectId: string) => {
-    try {
+  const {
+    data: blog,
+    isPending,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["blog", objectId],
+    queryFn: async () => {
       const response = await axiosInstance.get<Blog>(`/data/Blogs/${objectId}`);
-      setBlog(response.data);
-      setError(null);
-    } catch (error) {
-      console.error("Failed to fetch blog:", error);
-      setError("Failed to load blog. Please try again later.");
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  useEffect(() => {
-    if (objectId) {
-      getBlog(objectId);
-    }
-  }, [objectId]);
+      return response.data;
+    },
+  });
 
   if (isPending) {
     return <BlogDetailLoading />;
@@ -45,8 +35,8 @@ function BlogDetail() {
   if (error) {
     return (
       <BlogDetailError
-        error={error}
-        onRetry={() => objectId && getBlog(objectId)}
+        error={"Failed to load blog"}
+        onRetry={() => refetch()}
       />
     );
   }

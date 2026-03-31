@@ -1,12 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { BookOpen, Lock, Mail } from "lucide-react";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router";
 import { z } from "zod";
 import { axiosInstance } from "../lib/axios";
 import { useAuth } from "../stores/useAuth";
-import toast from "react-hot-toast";
 
 const formSchema = z.object({
   email: z.email("Invalid email"),
@@ -26,24 +26,27 @@ function Login() {
 
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [isPending, setIsPending] = useState<boolean>(false);
 
-  const onSubmit = async (data: FormData) => {
-    setIsPending(true);
-    try {
+  const { mutateAsync: loginMutation, isPending } = useMutation({
+    mutationFn: async (payload: FormData) => {
       const response = await axiosInstance.post("/users/login", {
-        login: data.email,
-        password: data.password,
+        login: payload.email,
+        password: payload.password,
       });
-      login(response.data);
+      return response.data;
+    },
+    onSuccess: (response) => {
+      login(response);
       toast.success("Login success!");
       navigate("/");
-    } catch (error) {
-      console.log(error);
+    },
+    onError: () => {
       toast.error("Login failed!");
-    } finally {
-      setIsPending(false);
-    }
+    },
+  });
+
+  const onSubmit = async (data: FormData) => {
+    await loginMutation(data);
   };
 
   return (
