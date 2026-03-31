@@ -1,12 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import { File as FileEdit, FileText, Image, User } from "lucide-react";
-import { useState } from "react";
 import { useForm } from "react-hook-form";
+import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
 import z from "zod";
 import Navbar from "../components/Navbar";
 import { axiosInstance } from "../lib/axios";
-import toast from "react-hot-toast";
 
 const formSchema = z.object({
   title: z.string("Title is required").min(1, "Title cannot be empty"),
@@ -51,14 +51,11 @@ function CreateBlog() {
 
   const navigate = useNavigate();
 
-  const [isPending, setIsPending] = useState<boolean>(false);
-
-  const onSubmit = async (data: FormDataCreateBlog) => {
-    setIsPending(true);
-    try {
+  const { mutateAsync: createBlogMutation, isPending } = useMutation({
+    mutationFn: async (payload: FormDataCreateBlog) => {
       // step 1 -> masukin thumbnail ke file service
       const form = new FormData();
-      form.append("file", data.thumbnail);
+      form.append("file", payload.thumbnail);
 
       const folderName = "images";
       const fileName = generateRandomString(10);
@@ -70,21 +67,23 @@ function CreateBlog() {
       // step 2 -> masukin data ke database table Blogs
       await axiosInstance.post(`/data/Blogs`, {
         thumbnail: response.data.fileURL,
-        author: data.author,
-        description: data.description,
-        title: data.title,
-        content: data.content,
+        author: payload.author,
+        description: payload.description,
+        title: payload.title,
+        content: payload.content,
       });
-
+    },
+    onSuccess: () => {
       toast.success("Create Blog success");
-
       navigate("/");
-    } catch (error) {
-      console.log(error);
+    },
+    onError: () => {
       toast.error("Create Blog failed");
-    } finally {
-      setIsPending(false);
-    }
+    },
+  });
+
+  const onSubmit = async (data: FormDataCreateBlog) => {
+    await createBlogMutation(data);
   };
 
   return (

@@ -1,5 +1,5 @@
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Link } from "react-router";
 import BlogCard from "../components/BlogCard";
 import BlogCardSkeleton from "../components/BlogCardSkeleton";
@@ -11,26 +11,20 @@ import type { Blog } from "../types/blog";
 function Home() {
   const { user } = useAuth();
 
-  const [blogs, setBlogs] = useState<Blog[]>([]);
-  const [isPending, setIsPending] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const getBlogs = async () => {
-    try {
-      const response = await axiosInstance.get<Blog[]>("/data/Blogs");
-      setBlogs(response.data);
-      setError(null);
-    } catch (error) {
-      console.error("Failed to fetch blogs:", error);
-      setError("Failed to load blogs. Please try again later.");
-    } finally {
-      setIsPending(false);
-    }
-  };
-
-  useEffect(() => {
-    getBlogs();
-  }, []);
+  const {
+    data: blogs,
+    isPending,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ["blogs"],
+    queryFn: async () => {
+      const response = await axiosInstance.get<Blog[]>(
+        "/data/Blogs?sortBy=%60created%60%20desc",
+      );
+      return response.data;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -53,9 +47,9 @@ function Home() {
         {/* Error State */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg mb-6 flex items-center justify-between">
-            <p>{error}</p>
+            <p>{error.message}</p>
             <button
-              onClick={getBlogs}
+              onClick={() => refetch()}
               className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
             >
               Retry
@@ -73,7 +67,7 @@ function Home() {
         ) : (
           <>
             {/* Empty State */}
-            {blogs.length === 0 && !error && (
+            {blogs && blogs.length === 0 && !error && (
               <div className="text-center py-16">
                 <div className="text-gray-400 mb-4">
                   <svg
@@ -109,7 +103,7 @@ function Home() {
             )}
 
             {/* Blog Cards */}
-            {blogs.length > 0 && (
+            {blogs && blogs.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {blogs.map((blog) => (
                   <BlogCard key={blog.objectId} blog={blog} />
