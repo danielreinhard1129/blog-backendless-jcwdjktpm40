@@ -4,31 +4,24 @@ import { BookOpen, Lock, Mail } from "lucide-react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router";
-import { z } from "zod";
 import { axiosInstance } from "../lib/axios";
+import { loginSchema, type LoginSchema } from "../schemas/loginSchema";
 import { useAuth } from "../stores/useAuth";
-
-const formSchema = z.object({
-  email: z.email("Invalid email"),
-  password: z.string().min(1, { message: "Password is required" }),
-});
-
-type FormData = z.infer<typeof formSchema>;
 
 function Login() {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  } = useForm<LoginSchema>({
+    resolver: zodResolver(loginSchema),
   });
 
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const { mutateAsync: loginMutation, isPending } = useMutation({
-    mutationFn: async (payload: FormData) => {
+    mutationFn: async (payload: LoginSchema) => {
       const response = await axiosInstance.post("/users/login", {
         login: payload.email,
         password: payload.password,
@@ -45,7 +38,7 @@ function Login() {
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: LoginSchema) => {
     await loginMutation(data);
   };
 

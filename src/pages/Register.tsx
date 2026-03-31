@@ -4,38 +4,22 @@ import { BookOpen, Lock, Mail, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router";
-import { z } from "zod";
 import { axiosInstance } from "../lib/axios";
-
-const formSchema = z
-  .object({
-    name: z.string().min(2, { message: "Name must be at least 2 characters" }),
-    email: z.email("Invalid email"),
-    password: z
-      .string()
-      .min(6, { message: "Password must be at least 6 chars" }),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
-
-type FormData = z.infer<typeof formSchema>;
+import { registerSchema, type RegisterSchema } from "../schemas/registerSchema";
 
 function Register() {
   const {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+  } = useForm<RegisterSchema>({
+    resolver: zodResolver(registerSchema),
   });
 
   const navigate = useNavigate();
 
   const { mutateAsync: registerMutation, isPending } = useMutation({
-    mutationFn: async (payload: FormData) => {
+    mutationFn: async (payload: RegisterSchema) => {
       await axiosInstance.post("/users/register", {
         name: payload.name,
         email: payload.email,
@@ -51,7 +35,7 @@ function Register() {
     },
   });
 
-  const onSubmit = async (data: FormData) => {
+  const onSubmit = async (data: RegisterSchema) => {
     await registerMutation(data);
   };
 

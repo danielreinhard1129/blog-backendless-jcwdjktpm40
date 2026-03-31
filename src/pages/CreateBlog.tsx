@@ -4,35 +4,13 @@ import { File as FileEdit, FileText, Image, User } from "lucide-react";
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import { useNavigate } from "react-router";
-import z from "zod";
 import Navbar from "../components/Navbar";
 import { axiosInstance } from "../lib/axios";
-
-const formSchema = z.object({
-  title: z.string("Title is required").min(1, "Title cannot be empty"),
-  description: z
-    .string("Description is required")
-    .min(1, "Description cannot be empty"),
-  author: z.string("Author is required").min(1, "Author cannot be empty"),
-  thumbnail: z
-    .instanceof(File, { message: "Thumbnail must be a file" })
-    .refine((file) => file.size > 0, "Thumbnail is required"),
-  content: z.string("Content is required").min(1, "Content cannot be empty"),
-});
-
-type FormDataCreateBlog = z.infer<typeof formSchema>;
-
-const generateRandomString = (length: number = 10) => {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-
-  return result;
-};
+import {
+  createBlogSchema,
+  type CreateBlogSchema,
+} from "../schemas/createBlogSchema";
+import { generateRandomString } from "../utils/generateRandomString";
 
 interface FileServiceResponse {
   fileURL: string;
@@ -45,14 +23,14 @@ function CreateBlog() {
     handleSubmit,
     formState: { errors },
     setValue,
-  } = useForm<FormDataCreateBlog>({
-    resolver: zodResolver(formSchema),
+  } = useForm<CreateBlogSchema>({
+    resolver: zodResolver(createBlogSchema),
   });
 
   const navigate = useNavigate();
 
   const { mutateAsync: createBlogMutation, isPending } = useMutation({
-    mutationFn: async (payload: FormDataCreateBlog) => {
+    mutationFn: async (payload: CreateBlogSchema) => {
       // step 1 -> masukin thumbnail ke file service
       const form = new FormData();
       form.append("file", payload.thumbnail);
@@ -82,7 +60,7 @@ function CreateBlog() {
     },
   });
 
-  const onSubmit = async (data: FormDataCreateBlog) => {
+  const onSubmit = async (data: CreateBlogSchema) => {
     await createBlogMutation(data);
   };
 
